@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ question.title }}{% endblock %}
+
+{% block content %}
+
+<div class="card mb-5 shadow-lg border-0 rounded-4 position-relative question-card">
+    <div class="card-header text-white py-4 px-4 border-0 rounded-top-4" style="background: linear-gradient(to right, #0d6efd, #6610f2);">
+        <h2 class="mb-0 d-flex align-items-center">
+            <i class="bi bi-question-circle-fill me-2 fs-3"></i>
+            <span class="fs-4">{{ question.title }}</span>
+        </h2>
+    </div>
+    <div class="card-body p-4">
+        <div class="d-flex flex-wrap align-items-center mb-3">
+            <span class="badge bg-primary-subtle text-primary me-2">
+                <i class="bi bi-person-fill me-1"></i> {{ question.author.username }}
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary">
+                <i class="bi bi-calendar-event me-1"></i> {{ question.created_at|date:"F j, Y" }}
+            </span>
+        </div>
+        <div class="question-content fs-5 lh-lg text-dark">
+            {{ question.content|safe}}
+        </div>
+    </div>
+</div>
+
+
+<h4 class="mb-4 border-bottom pb-2">{{ answers.count }} Answer{% if answers.count != 1 %}s{% endif %}</h4>
+
+
+{% for answer in answers %}
+    <div class="card mb-4 border-0 shadow-sm rounded-3 bg-light answer-card" id="answer-{{ answer.id }}">
+        <div class="card-body">
+
+            <div class="fs-6 mb-3 text-dark">
+                <i class="bi bi-chat-left-dots-fill text-success me-2"></i>
+                {{ answer.content|safe }}
+            </div>
+
+
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="bi bi-person-check-fill me-1"></i>{{ answer.author.username }} 
+                    <span class="mx-2">•</span>
+                    <i class="bi bi-clock me-1"></i>{{ answer.created_at|date:"F j, Y" }}
+                </small>
+
+                {% if user.is_authenticated %}
+                    <button class="btn btn-sm btn-outline-success like-button rounded-pill px-3" data-answer-id="{{ answer.id }}">
+                        {% if user in answer.likes.all %}
+                            <i class="bi bi-hand-thumbs-down me-1"></i>Unlike
+                        {% else %}
+                            <i class="bi bi-hand-thumbs-up me-1"></i>Like
+                        {% endif %}
+                        (<span class="likes-count">{{ answer.total_likes }}</span>)
+                    </button>
+                {% else %}
+                    <span class="badge bg-secondary rounded-pill px-3 py-2">
+                        <i class="bi bi-heart-fill me-1"></i>{{ answer.total_likes }}
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% empty %}
+    <div class="alert alert-info shadow-sm">
+        <i class="bi bi-info-circle-fill me-2"></i>No answers yet. Be the first to answer!
+    </div>
+{% endfor %}
+
+
+{% if user.is_authenticated %}
+    <div class="card mt-5 shadow rounded-3">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bi bi-pencil-square me-2"></i>Your Answer</h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.content.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-send-fill me-1"></i> Submit Answer
+                </button>
+            </form>
+        </div>
+    </div>
+{% else %}
+    <div class="alert alert-secondary mt-5 text-center">
+        <i class="bi bi-box-arrow-in-right me-1"></i>
+        <a href="{% url 'login' %}" class="alert-link">Login</a> to post an answer.
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if user.is_authenticated %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const likeButtons = document.querySelectorAll('.like-button');
+        const csrfToken = '{{ csrf_token }}';
+
+        likeButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const answerId = this.getAttribute('data-answer-id');
+
+                fetch(`/qa/like/${answerId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const likesCount = this.querySelector('.likes-count');
+                    likesCount.textContent = data.likes_count;
+
+                    if (data.liked) {
+                        this.innerHTML = `<i class="bi bi-hand-thumbs-down me-1"></i>Unlike (<span class="likes-count">${data.likes_count}</span>)`;
+                    } else {
+                        this.innerHTML = `<i class="bi bi-hand-thumbs-up me-1"></i>Like (<span class="likes-count">${data.likes_count}</span>)`;
+                    }
+                });
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}

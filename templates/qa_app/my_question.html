@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block title %}My Questions{% endblock %}
+
+{% block content %}
+    <div class="row mb-4">
+        <div class="col-8">
+            <h2>My Questions</h2>
+        </div>
+        <div class="col-4 text-end">
+            <a href="{% url 'ask_question' %}" class="btn btn-primary">Ask New Question</a>
+        </div>
+    </div>
+
+    {% if questions %}
+        {% for question in questions %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="card-title">
+                        <a href="{% url 'question_detail' question.pk %}" class="text-decoration-none">
+                            {{ question.title }}
+                        </a>
+                    </h3>
+                    <h6 class="card-subtitle mb-2 text-muted">
+                        Posted on {{ question.created_at|date:"F j, Y" }}
+                        {% if question.created_at != question.updated_at %}
+                            (Updated on {{ question.updated_at|date:"F j, Y" }})
+                        {% endif %}
+                    </h6>
+                    <p class="card-text">{{ question.content|truncatewords:30 }}</p>
+                    <div class="btn-group">
+                        <a href="{% url 'question_detail' question.pk %}" class="btn btn-sm btn-outline-primary">View</a>
+                        <a href="{% url 'update_question' question.pk %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="alert alert-info">
+            You haven't asked any questions yet. <a href="{% url 'ask_question' %}">Ask your first question!</a>
+        </div>
+    {% endif %}
+{% endblock %}
